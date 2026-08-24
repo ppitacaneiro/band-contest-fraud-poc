@@ -1,0 +1,31 @@
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fraud-poc-api
+    ports:
+      - "3001:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      PORT: 3000
+    command: npm run dev
+
+  mysql:
+    image: mysql:8.4
+    container_name: fraud-poc-mysql
+    environment:
+      MYSQL_DATABASE: band_contest_fraud_poc
+      MYSQL_USER: fraud_poc
+      MYSQL_PASSWORD: fraud_poc_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
