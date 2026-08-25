@@ -1,3 +1,7 @@
+// Pool de conexiones a MySQL.
+// Mantiene y reutiliza un número limitado de conexiones para evitar
+// crear y cerrar una conexión en cada petición y controlar la concurrencia.
+
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
