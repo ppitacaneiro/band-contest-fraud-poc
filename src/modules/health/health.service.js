@@ -1,4 +1,4 @@
-const healthRepository = require('../repositories/health.repository');
+const healthRepository = require('./health.repository');
 
 async function checkHealth() {
     const databaseConnected =
