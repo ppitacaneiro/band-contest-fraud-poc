@@ -11,27 +11,6 @@ async function createVote({
     userAgent
 }) {
 
-    const recentAttempts = await votingRepository.countRecentAttemptsByIp(ipAddress,ATTEMPT_WINDOW_MINUTES);
-    
-    if (recentAttempts >= MAX_ATTEMPTS_PER_IP) {
-        const attempt = await votingRepository.createVoteAttempt({
-            userId,
-            contestId,
-            artistId,
-            ipAddress,
-            userAgent,
-            status: 'rejected',
-            riskScore: 100
-        });
-
-        return {
-            status: 'rejected',
-            riskScore: 100,
-            attemptId: attempt.id,
-            message: 'Too many voting attempts from this IP'
-        };
-    }
-
     const attempt = await votingRepository.createVoteAttempt({
         userId,
         contestId,

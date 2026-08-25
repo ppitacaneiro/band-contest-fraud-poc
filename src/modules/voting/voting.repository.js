@@ -60,22 +60,7 @@ async function createVote({
     };
 }
 
-async function countRecentAttemptsByIp(ipAddress, minutes) {
-    const [rows] = await db.execute(
-        `
-        SELECT COUNT(*) AS total
-        FROM vote_attempts
-        WHERE ip_address = ?
-        AND created_at >= DATE_SUB(NOW(), INTERVAL ? MINUTE)
-        `,
-        [ipAddress, minutes]
-    );
-
-    return Number(rows[0].total);
-}
-
 module.exports = {
     createVoteAttempt,
     createVote,
-    countRecentAttemptsByIp
 };
