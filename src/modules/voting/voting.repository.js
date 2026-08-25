@@ -60,7 +60,24 @@ async function createVote({
     };
 }
 
+async function hasUserVoted(userId, contestId) {
+    const [rows] = await db.execute(
+        `
+        SELECT id
+        FROM votes
+        WHERE user_id = ?
+        AND contest_id = ?
+        LIMIT 1
+        `,
+        [userId, contestId]
+    );
+
+    return rows.length > 0;
+}
+
+
 module.exports = {
     createVoteAttempt,
     createVote,
+    hasUserVoted
 };

@@ -11,6 +11,29 @@ async function createVote({
     userAgent
 }) {
 
+    const alreadyVoted = await votingRepository.hasUserVoted(
+            userId,
+            contestId
+        );
+
+    if (alreadyVoted) {
+        const attempt = await votingRepository.createVoteAttempt({
+            userId,
+            contestId,
+            artistId,
+            ipAddress,
+            userAgent,
+            status: 'rejected',
+            riskScore: 0
+        });
+        return {
+            status: 'rejected',
+            reason: 'already_voted',
+            attemptId: attempt.id,
+            message: 'User has already voted in this contest'
+        };
+    }
+
     const attempt = await votingRepository.createVoteAttempt({
         userId,
         contestId,
