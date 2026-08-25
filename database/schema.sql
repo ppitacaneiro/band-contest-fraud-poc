@@ -32,6 +32,8 @@ CREATE TABLE votes (
     contest_id INT UNSIGNED NOT NULL,
     artist_id INT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uq_votes_user_contest (user_id, contest_id),
 
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (contest_id) REFERENCES contests(id),
