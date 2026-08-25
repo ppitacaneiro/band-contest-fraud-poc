@@ -1,7 +1,5 @@
 const votingRepository = require('./voting.repository');
-
-const MAX_ATTEMPTS_PER_IP = 5;
-const ATTEMPT_WINDOW_MINUTES = 10;
+const fraudService = require('../fraud/fraud.service');
 
 async function createVote({
     userId,
@@ -34,14 +32,19 @@ async function createVote({
         };
     }
 
+    const fraudResult = await fraudService.analyzeVote({
+        ipAddress,
+        contestId
+    });
+
     const attempt = await votingRepository.createVoteAttempt({
         userId,
         contestId,
         artistId,
         ipAddress,
         userAgent,
-        status: 'accepted',
-        riskScore: 0
+        status: fraudResult.status,
+        riskScore:  fraudResult.riskScore
     });
 
     const vote = await votingRepository.createVote({
