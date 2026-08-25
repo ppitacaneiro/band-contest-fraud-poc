@@ -2,13 +2,13 @@ require('dotenv').config();
 
 const express = require('express');
 
-const healthRoutes = require('./modules/health/health.routes');
+const apiRoutes = require('./routes');
 
 const app = express();
 
 app.use(express.json());
 
-app.use('/health', healthRoutes);
+app.use('/api', apiRoutes);
 
 const port = process.env.PORT || 3000;
 
