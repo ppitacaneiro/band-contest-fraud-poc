@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>FingerprintJS PoC</title>
+</head>
+<body>
+    <h1>FingerprintJS PoC</h1>
+    <p>
+        Visitor ID:
+        <strong id="visitorId">Calculando...</strong>
+    </p>
+    <script type="module">
+        import FingerprintJS from 'https://openfpcdn.io/fingerprintjs/v5';
+        const fp = await FingerprintJS.load();
+        const result = await fp.get();
+        console.log(JSON.stringify(result, null, 2));
+        document.getElementById('visitorId').textContent = result.visitorId;
+    </script>
+</body>
+</html>

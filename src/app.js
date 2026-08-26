@@ -8,6 +8,8 @@ const app = express();
 
 app.use(express.json());
 
+app.use('/test', express.static('test'));
+
 app.use('/api', apiRoutes);
 
 const port = process.env.PORT || 3000;
