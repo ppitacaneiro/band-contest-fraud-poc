@@ -11,7 +11,24 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    -- Identificación del entorno
+    fingerprint_id VARCHAR(100),
+    -- Navegador
+    browser VARCHAR(100),
+    browser_version VARCHAR(50),
+    user_agent VARCHAR(500),
+    -- Sistema
+    os VARCHAR(100),
+    device_type VARCHAR(50),
+    -- Configuración
+    language VARCHAR(20),
+    timezone VARCHAR(100),
+    -- Red
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_users_fingerprint (fingerprint_id),
+    INDEX idx_users_ip (ip_address)
 );
 
 CREATE TABLE contests (

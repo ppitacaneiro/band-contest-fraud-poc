@@ -8,7 +8,7 @@ const app = express();
 
 app.use(express.json());
 
-app.use('/test', express.static('test'));
+app.use(express.static('public'));
 
 app.use('/api', apiRoutes);
 

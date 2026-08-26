@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Registro - FingerprintJS PoC</title>
+
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>Crear usuario</h1>
+
+        <form id="registerForm">
+
+            <div>
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="usuario@ejemplo.com"
+                    autocomplete="email"
+                    required
+                >
+            </div>
+
+            <button type="submit" id="registerButton">
+                Registrarse
+            </button>
+
+        </form>
+
+        <div class="info">
+
+            <h2>Información capturada</h2>
+
+            <pre id="result">Esperando registro...</pre>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script type="module">
+
+    import FingerprintJS from
+        'https://openfpcdn.io/fingerprintjs/v5';
+
+    const form =
+        document.getElementById('registerForm');
+
+    const resultElement =
+        document.getElementById('result');
+
+    const registerButton =
+        document.getElementById('registerButton');
+
+
+    // Inicializamos FingerprintJS
+
+    const fp =
+        await FingerprintJS.load();
+
+
+    // Obtenemos el fingerprint
+
+    const fingerprint =
+        await fp.get();
+
+    console.log(
+        'FingerprintJS:',
+        fingerprint
+    );
+
+
+    form.addEventListener('submit', async (event) => {
+
+        event.preventDefault();
+
+        registerButton.disabled = true;
+        registerButton.textContent = 'Procesando...';
+
+
+        const email =
+            document.getElementById('email').value;
+
+
+        /*
+         * Información proporcionada por FingerprintJS
+         */
+
+        const visitorId =
+            fingerprint.visitorId;
+
+        const confidence =
+            fingerprint.confidence?.score ?? null;
+
+        const userAgentData =
+            fingerprint.components?.userAgentData?.value;
+
+
+        /*
+         * Navegador
+         */
+
+        let browser = null;
+
+        if (userAgentData?.brands?.length) {
+
+            browser =
+                userAgentData.brands[0].brand;
+
+        }
+
+
+        /*
+         * Sistema operativo
+         */
+
+        const os =
+            userAgentData?.platform ?? null;
+
+
+        /*
+         * Versión del sistema operativo
+         */
+
+        const osVersion =
+            userAgentData?.platformVersion ?? null;
+
+
+        /*
+         * Tipo de dispositivo
+         */
+
+        const deviceType =
+            userAgentData?.mobile
+                ? 'mobile'
+                : 'desktop';
+
+
+        /*
+         * Información del navegador
+         */
+
+        const userAgent =
+            navigator.userAgent ?? null;
+
+        const platform =
+            navigator.platform ?? null;
+
+        const language =
+            navigator.language ?? null;
+
+        const timezone =
+            Intl.DateTimeFormat()
+                .resolvedOptions()
+                .timeZone ?? null;
+
+
+        /*
+         * Objeto que enviaremos a nuestra API
+         */
+
+        const data = { 
+            email,
+            fingerprintId: visitorId,
+            fingerprintConfidence: confidence,
+            browser,
+            os,
+            osVersion,
+            deviceType,
+            userAgent,
+            platform,
+            language,
+            timezone
+        };
+
+        console.log(
+            'Datos enviados:',
+            data
+        );
+
+        resultElement.textContent =
+            JSON.stringify(
+                data,
+                null,
+                2
+            );
+
+        registerButton.disabled = false;
+        registerButton.textContent = 'Registrarse';
+    });
+</script>
+</body>
+</html>
