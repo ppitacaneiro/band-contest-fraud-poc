@@ -34,7 +34,8 @@ async function createVote({
 
     const fraudResult = await fraudService.analyzeVote({
         ipAddress,
-        contestId
+        contestId,
+        artistId
     });
 
     const attempt = await votingRepository.createVoteAttempt({
@@ -54,10 +55,11 @@ async function createVote({
     });
 
     return {
-        status: 'accepted',
-        riskScore: 0,
+        status: fraudResult.status,
+        riskScore: fraudResult.riskScore,
         attemptId: attempt.id,
-        voteId: vote.id
+        voteId: vote.id,
+        rules: fraudResult.rules
     };
 }
 

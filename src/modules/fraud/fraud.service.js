@@ -1,13 +1,17 @@
 const multipleUsersSameIpRule =
     require('./rules/multiple-users-same-ip.rule');
+const rapidVotesSameArtistRule =
+    require('./rules/rapid-votes-same-artist.rule');
 
 const rules = [
-    multipleUsersSameIpRule
+    multipleUsersSameIpRule,
+    rapidVotesSameArtistRule
 ];
 
 async function analyzeVote({
     ipAddress,
-    contestId
+    contestId,
+    artistId
 }) {
 
     const results = [];
@@ -16,7 +20,8 @@ async function analyzeVote({
 
         const result = await rule.evaluate({
             ipAddress,
-            contestId
+            contestId,
+            artistId
         });
 
         results.push(result);
