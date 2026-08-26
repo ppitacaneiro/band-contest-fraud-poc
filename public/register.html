@@ -49,7 +49,6 @@
 
     console.log('FingerprintJS:',fingerprint);
 
-
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         registerButton.disabled = true;
@@ -66,13 +65,15 @@
         const confidence = fingerprint.confidence?.score ?? null;
         const userAgentData = fingerprint.components?.userAgentData?.value;
 
+        console.log('userAgent:', userAgentData);
+
         /*
          * Navegador
          */
 
         let browser = null;
         if (userAgentData?.brands?.length) {
-            browser = userAgentData.brands[0].brand;
+            browser = userAgentData.brands[0];
         }
 
         /*
@@ -116,15 +117,16 @@
             timezone
         };
 
-        console.log('Datos enviados:',data);
-
-        resultElement.textContent =
-            JSON.stringify(
-                data,
-                null,
-                2
-            );
-
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        const responseData = await response.json();
+        console.log('Respuesta API:', responseData);
+        resultElement.textContent = JSON.stringify(responseData, null, 2);
         registerButton.disabled = false;
         registerButton.textContent = 'Registrarse';
     });

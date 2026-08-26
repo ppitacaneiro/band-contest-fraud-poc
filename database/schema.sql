@@ -15,7 +15,6 @@ CREATE TABLE users (
     fingerprint_id VARCHAR(100),
     -- Navegador
     browser VARCHAR(100),
-    browser_version VARCHAR(50),
     user_agent VARCHAR(500),
     -- Sistema
     os VARCHAR(100),
