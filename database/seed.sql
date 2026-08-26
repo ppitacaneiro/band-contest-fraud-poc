@@ -9,7 +9,17 @@ VALUES
     ('usuario7@test.com'),
     ('usuario8@test.com'),
     ('usuario9@test.com'),
-    ('usuario10@test.com');
+    ('usuario10@test.com'),
+    ('usuario11@test.com'),
+    ('usuario12@test.com'),
+    ('usuario13@test.com'),
+    ('usuario14@test.com'),
+    ('usuario15@test.com'),
+    ('usuario16@test.com'),
+    ('usuario17@test.com'),
+    ('usuario18@test.com'),
+    ('usuario19@test.com'),
+    ('usuario20@test.com');
 
 INSERT INTO contests (name)
 VALUES
