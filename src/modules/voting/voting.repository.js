@@ -7,7 +7,8 @@ async function createVoteAttempt({
     ipAddress,
     userAgent,
     status,
-    riskScore
+    riskScore,
+    riskDetails
 }) {
     const [result] = await db.execute(
         `
@@ -18,9 +19,10 @@ async function createVoteAttempt({
             ip_address,
             user_agent,
             status,
-            risk_score
+            risk_score,
+            risk_details
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
             userId,
@@ -29,7 +31,8 @@ async function createVoteAttempt({
             ipAddress,
             userAgent,
             status,
-            riskScore
+            riskScore,
+            JSON.stringify(riskDetails)
         ]
     );
 

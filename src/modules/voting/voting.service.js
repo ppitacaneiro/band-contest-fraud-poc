@@ -22,7 +22,8 @@ async function createVote({
             ipAddress,
             userAgent,
             status: 'rejected',
-            riskScore: 0
+            riskScore: 0,
+            riskDetails: []
         });
         return {
             status: 'rejected',
@@ -48,7 +49,8 @@ async function createVote({
         ipAddress,
         userAgent,
         status: fraudResult.status,
-        riskScore:  fraudResult.riskScore
+        riskScore:  fraudResult.riskScore,
+        riskDetails: fraudResult.rules
     });
 
     const vote = await votingRepository.createVote({
