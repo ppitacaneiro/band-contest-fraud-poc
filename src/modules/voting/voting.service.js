@@ -32,10 +32,13 @@ async function createVote({
         };
     }
 
+    const fingerprintId = await votingRepository.getUserFingerprint(userId);
     const fraudResult = await fraudService.analyzeVote({
+        userId,
         ipAddress,
         contestId,
-        artistId
+        artistId,
+        fingerprintId
     });
 
     const attempt = await votingRepository.createVoteAttempt({

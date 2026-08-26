@@ -75,9 +75,22 @@ async function hasUserVoted(userId, contestId) {
     return rows.length > 0;
 }
 
+async function getUserFingerprint(userId) {
+    const [rows] = await db.execute(
+        `
+        SELECT fingerprint_id
+        FROM users
+        WHERE id = ?
+        `,
+        [userId]
+    );
+
+    return rows[0]?.fingerprint_id ?? null;
+}
 
 module.exports = {
     createVoteAttempt,
     createVote,
-    hasUserVoted
+    hasUserVoted,
+    getUserFingerprint
 };
