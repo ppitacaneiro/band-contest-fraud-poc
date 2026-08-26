@@ -68,10 +68,14 @@ CREATE TABLE vote_attempts (
     status ENUM(
         'accepted',
         'rejected',
-        'suspicious'
+        'suspicious',
+        'blocked'
     ) NOT NULL,
 
     risk_score INT UNSIGNED NOT NULL DEFAULT 0,
+
+    risk_details JSON NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     INDEX idx_vote_attempts_ip_created (ip_address, created_at),
