@@ -1,7 +1,5 @@
-const multipleUsersSameIpRule =
-    require('./rules/multiple-users-same-ip.rule');
-const rapidVotesSameArtistRule =
-    require('./rules/rapid-votes-same-artist.rule');
+const multipleUsersSameIpRule = require('./rules/multiple-users-same-ip.rule');
+const rapidVotesSameArtistRule = require('./rules/rapid-votes-same-artist.rule');
 
 const rules = [
     multipleUsersSameIpRule,
