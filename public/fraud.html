@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Panel antifraude - Band Contest Fraud PoC</title>
+
+    <link rel="stylesheet" href="/css/fraud.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header class="page-header">
+        <div>
+            <h1>Panel antifraude</h1>
+            <p>Monitorización de intentos de votación</p>
+        </div>
+
+        <button id="refreshButton" class="refresh-button" type="button">
+            Actualizar
+        </button>
+    </header>
+
+
+    <!-- Resumen -->
+
+    <section class="summary">
+
+        <div class="summary-card">
+            <span class="summary-label">Total</span>
+            <strong id="totalAttempts">0</strong>
+        </div>
+
+        <div class="summary-card accepted">
+            <span class="summary-label">Aceptados</span>
+            <strong id="acceptedAttempts">0</strong>
+        </div>
+
+        <div class="summary-card suspicious">
+            <span class="summary-label">Sospechosos</span>
+            <strong id="suspiciousAttempts">0</strong>
+        </div>
+
+        <div class="summary-card rejected">
+            <span class="summary-label">Rechazados</span>
+            <strong id="rejectedAttempts">0</strong>
+        </div>
+
+    </section>
+
+
+    <!-- Intentos -->
+
+    <section class="attempts-section">
+
+        <div class="section-header">
+            <div>
+                <h2>Intentos de votación</h2>
+                <span id="attemptsCount">0 intentos</span>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="error-message hidden"></div>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>IP</th>
+                        <th>Concurso</th>
+                        <th>Artista</th>
+                        <th>Riesgo</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+
+                <tbody id="attemptsTableBody">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- Modal detalle -->
+
+<div id="detailModal" class="modal hidden">
+
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <div>
+                <h2>Intento de votación <span id="detailAttemptId"></span></h2>
+                <span id="detailStatus"></span>
+            </div>
+
+            <button id="closeModal" class="close-button" type="button">
+                ×
+            </button>
+
+        </div>
+
+
+        <!-- Información básica -->
+
+        <section class="detail-section">
+
+            <h3>Información del intento</h3>
+
+            <div class="detail-grid">
+
+                <div>
+                    <span>Usuario</span>
+                    <strong id="detailUser"></strong>
+                </div>
+
+                <div>
+                    <span>IP</span>
+                    <strong id="detailIp"></strong>
+                </div>
+
+                <div>
+                    <span>Concurso</span>
+                    <strong id="detailContest"></strong>
+                </div>
+
+                <div>
+                    <span>Artista</span>
+                    <strong id="detailArtist"></strong>
+                </div>
+
+                <div>
+                    <span>Fecha</span>
+                    <strong id="detailDate"></strong>
+                </div>
+
+                <div>
+                    <span>User-Agent</span>
+                    <strong id="detailUserAgent"></strong>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Riesgo -->
+
+        <section class="risk-section">
+
+            <div class="risk-header">
+
+                <div>
+                    <h3>Riesgo</h3>
+                    <p>Evaluación antifraude del intento</p>
+                </div>
+
+                <div id="detailRiskScore" class="risk-score">
+                    0
+                </div>
+
+            </div>
+
+            <div id="rulesContainer"></div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    const tableBody = document.getElementById('attemptsTableBody');
+
+    const totalAttempts = document.getElementById('totalAttempts');
+    const acceptedAttempts = document.getElementById('acceptedAttempts');
+    const suspiciousAttempts = document.getElementById('suspiciousAttempts');
+    const rejectedAttempts = document.getElementById('rejectedAttempts');
+
+    const attemptsCount = document.getElementById('attemptsCount');
+
+    const refreshButton = document.getElementById('refreshButton');
+
+    const detailModal = document.getElementById('detailModal');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeModal = document.getElementById('closeModal');
+
+
+    /*
+     * Carga de intentos
+     */
+
+    async function loadAttempts() {
+
+        try {
+
+            hideError();
+
+            refreshButton.disabled = true;
+            refreshButton.textContent = 'Actualizando...';
+
+            const response =
+                await fetch('/api/fraud/attempts');
+
+            if (!response.ok) {
+                throw new Error('Error retrieving attempts');
+            }
+
+            const attempts = await response.json();
+
+            renderSummary(attempts);
+            renderAttempts(attempts);
+
+        } catch (error) {
+
+            console.error(error);
+
+            showError(
+                'No se han podido cargar los intentos de votación.'
+            );
+
+        } finally {
+
+            refreshButton.disabled = false;
+            refreshButton.textContent = 'Actualizar';
+        }
+    }
+
+
+    /*
+     * Resumen
+     */
+
+    function renderSummary(attempts) {
+
+        const accepted =
+            attempts.filter(
+                attempt => attempt.status === 'accepted'
+            ).length;
+
+        const suspicious =
+            attempts.filter(
+                attempt => attempt.status === 'suspicious'
+            ).length;
+
+        const rejected =
+            attempts.filter(
+                attempt => attempt.status === 'rejected'
+            ).length;
+
+        totalAttempts.textContent = attempts.length;
+        acceptedAttempts.textContent = accepted;
+        suspiciousAttempts.textContent = suspicious;
+        rejectedAttempts.textContent = rejected;
+
+        attemptsCount.textContent =
+            `${attempts.length} ${attempts.length === 1 ? 'intento' : 'intentos'}`;
+    }
+
+
+    /*
+     * Tabla
+     */
+
+    function renderAttempts(attempts) {
+
+        tableBody.innerHTML = '';
+
+        if (attempts.length === 0) {
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="empty">
+                        No hay intentos de votación.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        attempts.forEach(attempt => {
+
+            const row = document.createElement('tr');
+
+            row.classList.add('attempt-row');
+
+            row.innerHTML = `
+                <td>#${attempt.id}</td>
+
+                <td>#${attempt.user_id}</td>
+
+                <td class="ip">
+                    ${escapeHtml(attempt.ip_address)}
+                </td>
+
+                <td>#${attempt.contest_id}</td>
+
+                <td>#${attempt.artist_id}</td>
+
+                <td>
+                    <span class="risk-badge ${getRiskClass(attempt.risk_score)}">
+                        ${attempt.risk_score}
+                    </span>
+                </td>
+
+                <td>
+                    ${getStatusBadge(attempt.status)}
+                </td>
+
+                <td>
+                    ${formatDate(attempt.created_at)}
+                </td>
+            `;
+
+            row.addEventListener(
+                'click',
+                () => openAttemptDetail(attempt.id)
+            );
+
+            tableBody.appendChild(row);
+        });
+    }
+
+
+    /*
+     * Detalle
+     */
+
+    async function openAttemptDetail(id) {
+
+        try {
+
+            const response =
+                await fetch(`/api/fraud/attempts/${id}`);
+
+            if (!response.ok) {
+                throw new Error('Error retrieving attempt');
+            }
+
+            const attempt = await response.json();
+
+            renderAttemptDetail(attempt);
+
+            detailModal.classList.remove('hidden');
+
+        } catch (error) {
+
+            console.error(error);
+
+            showError(
+                'No se ha podido cargar el detalle del intento.'
+            );
+        }
+    }
+
+
+    function renderAttemptDetail(attempt) {
+
+        document.getElementById('detailAttemptId').textContent =
+            `#${attempt.id}`;
+
+        document.getElementById('detailStatus').innerHTML =
+            getStatusBadge(attempt.status);
+
+        document.getElementById('detailUser').textContent =
+            `#${attempt.user_id}`;
+
+        document.getElementById('detailIp').textContent =
+            attempt.ip_address;
+
+        document.getElementById('detailContest').textContent =
+            `#${attempt.contest_id}`;
+
+        document.getElementById('detailArtist').textContent =
+            `#${attempt.artist_id}`;
+
+        document.getElementById('detailDate').textContent =
+            formatDate(attempt.created_at);
+
+        document.getElementById('detailUserAgent').textContent =
+            attempt.user_agent || '-';
+
+        document.getElementById('detailRiskScore').textContent =
+            attempt.risk_score;
+
+        renderRules(attempt.risk_details);
+    }
+
+
+    /*
+     * Reglas antifraude
+     */
+
+    function renderRules(riskDetails) {
+
+        const container =
+            document.getElementById('rulesContainer');
+
+        container.innerHTML = '';
+
+        if (!riskDetails || riskDetails.length === 0) {
+
+            container.innerHTML = `
+                <div class="no-rules">
+                    No hay información de reglas antifraude.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        riskDetails.forEach(rule => {
+
+            const ruleElement =
+                document.createElement('div');
+
+            ruleElement.className =
+                `rule ${rule.triggered ? 'triggered' : 'not-triggered'}`;
+
+
+            const data = rule.data || {};
+
+            let dataHtml = '';
+
+            Object.entries(data).forEach(([key, value]) => {
+
+                dataHtml += `
+                    <div class="rule-data">
+                        <span>${formatKey(key)}</span>
+                        <strong>${escapeHtml(String(value))}</strong>
+                    </div>
+                `;
+            });
+
+
+            ruleElement.innerHTML = `
+
+                <div class="rule-header">
+
+                    <div>
+
+                        <span class="rule-indicator">
+                            ${rule.triggered ? '●' : '○'}
+                        </span>
+
+                        <strong>
+                            ${formatRuleName(rule.name)}
+                        </strong>
+
+                    </div>
+
+                    <span class="rule-score">
+                        +${rule.score}
+                    </span>
+
+                </div>
+
+                <div class="rule-data-container">
+
+                    ${dataHtml}
+
+                </div>
+            `;
+
+
+            container.appendChild(ruleElement);
+        });
+    }
+
+
+    /*
+     * Estados
+     */
+
+    function getStatusBadge(status) {
+
+        const labels = {
+            accepted: 'Aceptado',
+            suspicious: 'Sospechoso',
+            rejected: 'Rechazado'
+        };
+
+        return `
+            <span class="status-badge ${status}">
+                ${labels[status] || status}
+            </span>
+        `;
+    }
+
+
+    function getRiskClass(score) {
+
+        if (score >= 80) {
+            return 'high';
+        }
+
+        if (score >= 40) {
+            return 'medium';
+        }
+
+        return 'low';
+    }
+
+
+    /*
+     * Nombres de reglas
+     */
+
+    function formatRuleName(name) {
+
+        const names = {
+
+            multiple_users_same_ip:
+                'Múltiples usuarios desde la misma IP',
+
+            rapid_votes_same_artist:
+                'Votos rápidos sobre el mismo artista',
+
+            same_fingerprint:
+                'Fingerprint compartido'
+        };
+
+        return names[name] || name;
+    }
+
+
+    function formatKey(key) {
+
+        const names = {
+
+            distinctUsers:
+                'Usuarios diferentes',
+
+            threshold:
+                'Umbral',
+
+            windowMinutes:
+                'Ventana',
+
+            recentVotes:
+                'Votos recientes',
+
+            windowSeconds:
+                'Ventana',
+
+            usersWithFingerprint:
+                'Usuarios con fingerprint'
+        };
+
+        return names[key] || key;
+    }
+
+
+    /*
+     * Fecha
+     */
+
+    function formatDate(date) {
+
+        if (!date) {
+            return '-';
+        }
+
+        return new Date(date).toLocaleString('es-ES');
+    }
+
+
+    /*
+     * Seguridad básica para HTML generado dinámicamente
+     */
+
+    function escapeHtml(value) {
+
+        return value
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+
+    /*
+     * Modal
+     */
+
+    function closeDetailModal() {
+
+        detailModal.classList.add('hidden');
+    }
+
+    closeModal.addEventListener(
+        'click',
+        closeDetailModal
+    );
+
+    modalOverlay.addEventListener(
+        'click',
+        closeDetailModal
+    );
+
+
+    /*
+     * Actualizar
+     */
+
+    refreshButton.addEventListener(
+        'click',
+        loadAttempts
+    );
+
+
+    /*
+     * Errores
+     */
+
+    function showError(message) {
+
+        const errorElement =
+            document.getElementById('errorMessage');
+
+        errorElement.textContent = message;
+
+        errorElement.classList.remove('hidden');
+    }
+
+
+    function hideError() {
+
+        document
+            .getElementById('errorMessage')
+            .classList.add('hidden');
+    }
+
+
+    /*
+     * Carga inicial
+     */
+
+    loadAttempts();
+
+</script>
+
+</body>
+</html>
+
