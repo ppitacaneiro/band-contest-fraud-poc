@@ -4,7 +4,7 @@ Prueba de concepto de un sistema de detección de fraude para una plataforma de 
 
 El objetivo de esta PoC es evaluar diferentes señales de comportamiento durante las votaciones y asignar un nivel de riesgo a cada intento de voto.
 
-## Stack
+## Tecnologías empleadas
 
 * Node.js
 * Express
@@ -13,8 +13,65 @@ El objetivo de esta PoC es evaluar diferentes señales de comportamiento durante
 * Docker
 * Docker Compose
 * mysql2
+* FingerprintJS
+* Jest
 * Arquitectura modular
 * Repository Pattern
+
+## Puesta en marcha
+
+### Requisitos
+
+Es necesario disponer de:
+
+* Docker
+* Docker Compose
+
+### Levantar el entorno
+
+Construir y arrancar los contenedores:
+
+```bash
+docker compose up -d --build
+```
+
+Comprobar el estado:
+
+```bash
+docker compose ps
+```
+
+Ver los logs de la API:
+
+```bash
+docker compose logs -f api
+```
+
+La API estará disponible en:
+
+```text
+http://localhost:3001
+```
+
+### Reconstruir la base de datos
+
+La PoC incluye un script para eliminar y volver a crear las tablas:
+
+```bash
+docker compose exec api npm run db:reset
+```
+
+> **Atención:** este comando elimina las tablas existentes y sus datos. No debe utilizarse sobre una base de datos con información real.
+
+### Ejecutar los tests
+
+La batería de pruebas automatizadas se ejecuta contra MySQL:
+
+```bash
+docker compose exec api npm test
+```
+
+Actualmente existen **12 tests automatizados** que cubren las principales casuísticas del sistema antifraude.
 
 ## Arquitectura
 
@@ -22,6 +79,7 @@ El proyecto utiliza una arquitectura modular, separando las responsabilidades de
 
 ```text
 src/
+
 ├── config/
 │   └── database.js
 │
@@ -62,190 +120,116 @@ Service → Repository → MySQL
 
 Esto permite mantener separada la lógica de negocio de las consultas SQL.
 
-## Docker
-
-La aplicación y MySQL se ejecutan mediante Docker Compose.
-
-```text
-Docker Compose
-│
-├── API
-│   └── Node.js + Express
-│
-└── MySQL
-```
-
-La API está disponible en:
-
-```text
-http://localhost:3001
-```
-
-## Configuración
-
-Las variables de entorno se definen en `.env`.
-
-Ejemplo:
-
-```env
-PORT=3000
-
-DB_HOST=mysql
-DB_PORT=3306
-DB_USER=fraud_poc
-DB_PASSWORD=fraud_poc_password
-DB_DATABASE=band_contest_fraud_poc
-DB_ROOT_PASSWORD=root_password
-```
-
-## Arranque
-
-Construir y levantar los contenedores:
-
-```bash
-docker compose up -d --build
-```
-
-Comprobar el estado:
-
-```bash
-docker compose ps
-```
-
-Ver los logs de la API:
-
-```bash
-docker compose logs -f api
-```
-
-## Base de datos
-
-La PoC utiliza un script para reconstruir la base de datos.
-
-```bash
-docker compose exec api npm run db:reset
-```
-
-Este proceso elimina las tablas existentes y las vuelve a crear.
-
-Por tanto, **no debe utilizarse sobre datos reales**.
-
-## Votaciones
-
-Endpoint:
-
-```http
-POST /api/voting
-```
-
-Ejemplo:
-
-```json
-{
-    "userId": 1,
-    "contestId": 1,
-    "artistId": 1
-}
-```
-
-### Regla de negocio
-
-Un usuario solamente puede emitir **un voto por concurso**.
-
-Esta regla está garantizada mediante una restricción única en MySQL:
-
-```sql
-UNIQUE (user_id, contest_id)
-```
-
-Por ejemplo:
-
-```text
-Usuario 1 + Concurso 1 → permitido
-Usuario 1 + Concurso 1 → rechazado
-Usuario 1 + Concurso 2 → permitido
-```
-
-## Registro de intentos
-
-Todos los intentos de votación se almacenan en `vote_attempts`.
-
-Un intento puede tener los siguientes estados:
-
-```text
-accepted
-rejected
-suspicious
-```
-
-Esto permite analizar posteriormente tanto los votos aceptados como los intentos rechazados o sospechosos.
-
 ## Sistema antifraude
 
-El sistema antifraude analiza un intento de voto antes de crear el voto definitivo.
+El sistema antifraude analiza cada intento de voto antes de crear el voto definitivo.
 
-Actualmente existe una primera regla:
+Actualmente se utilizan tres señales independientes que pueden combinarse para obtener una puntuación de riesgo:
 
-### Múltiples usuarios desde una misma IP
+### 1. Múltiples usuarios desde una misma IP
 
-Se analiza el número de usuarios diferentes que han intentado votar:
+Detecta diferentes usuarios que intentan votar desde la misma dirección IP dentro del mismo concurso.
 
-* desde la misma IP
-* en el mismo concurso
-* durante los últimos 5 minutos
+* Ventana: **5 minutos**
+* Umbral: **5 usuarios diferentes**
+* Puntuación: **+40**
 
-Si se alcanzan 5 usuarios diferentes, el intento obtiene:
+### 2. Votos rápidos al mismo artista
+
+Detecta un volumen elevado de intentos de voto hacia el mismo artista en un periodo muy corto.
+
+* Ventana: **60 segundos**
+* Umbral: **10 intentos**
+* Puntuación: **+30**
+
+### 3. Mismo fingerprint
+
+Detecta cuando diferentes usuarios han votado utilizando el mismo fingerprint de dispositivo.
+
+* Umbral: **otro usuario ya ha votado con ese fingerprint**
+* Puntuación: **+40**
+
+### Puntuación de riesgo
+
+Las reglas son independientes y sus puntuaciones se acumulan.
+
+```text
+IP                    +40
+Fingerprint           +40
+Votos rápidos         +30
+--------------------------
+Máximo                110
+```
+
+Actualmente cualquier puntuación superior a `0` genera:
 
 ```text
 status: suspicious
-riskScore: 40
 ```
 
-Actualmente los votos sospechosos **no se bloquean**. La finalidad de esta PoC es evaluar las señales y el sistema de puntuación antes de implementar decisiones automáticas de bloqueo.
+Los votos sospechosos no se bloquean automáticamente. Se registran para poder analizar posteriormente el comportamiento y validar las reglas antes de definir políticas de bloqueo.
 
-## Flujo de una votación
+## Registro de intentos
+
+Todos los intentos de votación se almacenan en `vote_attempts`, incluyendo:
+
+* Usuario
+* Concurso
+* Artista
+* IP
+* User-Agent
+* Estado
+* Puntuación de riesgo
+* Detalle de las reglas activadas
+
+El detalle de las reglas se almacena como JSON, permitiendo conocer no solo la puntuación final sino **por qué un intento ha sido considerado sospechoso**.
+
+## Tests automatizados
+
+La batería de tests utiliza **Jest + MySQL**.
+
+Actualmente se cubren **12 casos**:
+
+| #  | Casuística                                         | Resultado esperado                 |
+| -- | -------------------------------------------------- | ---------------------------------- |
+| 1  | Voto limpio                                        | `accepted / 0`                     |
+| 2  | 4 usuarios diferentes desde una IP                 | Sin alerta                         |
+| 3  | 5 usuarios diferentes desde una IP                 | `+40`                              |
+| 4  | 9 intentos rápidos al mismo artista                | Sin alerta                         |
+| 5  | 10 intentos rápidos al mismo artista               | `+30`                              |
+| 6  | Fingerprint único                                  | Sin alerta                         |
+| 7  | Fingerprint utilizado por otro usuario que ya votó | `+40`                              |
+| 8  | IP + votos rápidos                                 | `+70`                              |
+| 9  | IP + fingerprint                                   | `+80`                              |
+| 10 | IP + fingerprint + votos rápidos                   | `+110`                             |
+| 11 | Intentos IP fuera de la ventana de 5 minutos       | Sin alerta                         |
+| 12 | Múltiples intentos del mismo usuario desde una IP  | No contabiliza usuarios duplicados |
+
+Los tests limpian los datos generados entre pruebas para evitar que un escenario contamine al siguiente.
+
+Resultado actual:
 
 ```text
-POST /api/voting
-        │
-        ▼
-Voting Controller
-        │
-        ▼
-Voting Service
-        │
-        ├── ¿Ya ha votado?
-        │       │
-        │       ├── Sí → rejected
-        │       │
-        │       └── No
-        │
-        ▼
-Fraud Service
-        │
-        ▼
-Fraud Repository
-        │
-        ▼
-Evaluación de reglas
-        │
-        ▼
-Registro en vote_attempts
-        │
-        ▼
-Creación del voto
+Test Suites: 1 passed
+Tests:       12 passed
 ```
 
-## Objetivo de la PoC
+## Estado actual de la PoC
 
-El objetivo no es construir todavía un sistema antifraude definitivo, sino validar progresivamente:
+Actualmente se ha validado:
 
-1. Arquitectura modular.
-2. Separación mediante Repository Pattern.
-3. Registro de intentos de votación.
-4. Detección de patrones sospechosos.
-5. Sistema de puntuación de riesgo.
-6. Combinación de diferentes reglas antifraude.
-7. Posterior definición de criterios para aceptar, marcar como sospechoso o rechazar un voto.
+* Arquitectura modular.
+* Repository Pattern.
+* Registro de usuarios con fingerprint y datos del dispositivo.
+* Registro de todos los intentos de voto.
+* Regla de un voto por usuario y concurso.
+* Detección por IP.
+* Detección de ráfagas de votos.
+* Detección por fingerprint.
+* Acumulación de señales.
+* Puntuación de riesgo.
+* Detalle de las reglas que provocan la puntuación.
+* Persistencia de intentos sospechosos y rechazados.
+* Batería automatizada de **12 tests**.
 
-Las reglas antifraude se irán incorporando progresivamente a medida que avance la PoC.
+La PoC seguirá evolucionando incorporando nuevas señales y casos de prueba antes de definir un sistema definitivo de decisión automática.
