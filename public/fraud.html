@@ -3,72 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Panel antifraude - Band Contest Fraud PoC</title>
-
     <link rel="stylesheet" href="/css/fraud.css">
 </head>
-
 <body>
-
 <div class="container">
-
     <header class="page-header">
         <div>
             <h1>Panel antifraude</h1>
             <p>Monitorización de intentos de votación</p>
         </div>
-
         <button id="refreshButton" class="refresh-button" type="button">
             Actualizar
         </button>
     </header>
-
-
     <!-- Resumen -->
-
     <section class="summary">
-
         <div class="summary-card">
             <span class="summary-label">Total</span>
             <strong id="totalAttempts">0</strong>
         </div>
-
         <div class="summary-card accepted">
             <span class="summary-label">Aceptados</span>
             <strong id="acceptedAttempts">0</strong>
         </div>
-
         <div class="summary-card suspicious">
             <span class="summary-label">Sospechosos</span>
             <strong id="suspiciousAttempts">0</strong>
         </div>
-
         <div class="summary-card rejected">
             <span class="summary-label">Rechazados</span>
             <strong id="rejectedAttempts">0</strong>
         </div>
-
     </section>
-
-
     <!-- Intentos -->
-
     <section class="attempts-section">
-
         <div class="section-header">
             <div>
                 <h2>Intentos de votación</h2>
                 <span id="attemptsCount">0 intentos</span>
             </div>
         </div>
-
         <div id="errorMessage" class="error-message hidden"></div>
-
         <div class="table-container">
-
             <table>
-
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -81,123 +59,84 @@
                         <th>Fecha</th>
                     </tr>
                 </thead>
-
                 <tbody id="attemptsTableBody">
                 </tbody>
-
             </table>
-
         </div>
-
     </section>
-
 </div>
-
 
 <!-- Modal detalle -->
 
 <div id="detailModal" class="modal hidden">
-
     <div class="modal-overlay" id="modalOverlay"></div>
-
     <div class="modal-content">
-
         <div class="modal-header">
-
             <div>
                 <h2>Intento de votación <span id="detailAttemptId"></span></h2>
                 <span id="detailStatus"></span>
             </div>
-
             <button id="closeModal" class="close-button" type="button">
                 ×
             </button>
-
         </div>
 
-
         <!-- Información básica -->
-
         <section class="detail-section">
-
             <h3>Información del intento</h3>
-
             <div class="detail-grid">
-
                 <div>
                     <span>Usuario</span>
                     <strong id="detailUser"></strong>
                 </div>
-
                 <div>
                     <span>IP</span>
                     <strong id="detailIp"></strong>
                 </div>
-
                 <div>
                     <span>Concurso</span>
                     <strong id="detailContest"></strong>
                 </div>
-
                 <div>
                     <span>Artista</span>
                     <strong id="detailArtist"></strong>
                 </div>
-
                 <div>
                     <span>Fecha</span>
                     <strong id="detailDate"></strong>
                 </div>
-
                 <div>
                     <span>User-Agent</span>
                     <strong id="detailUserAgent"></strong>
                 </div>
-
             </div>
-
         </section>
 
-
         <!-- Riesgo -->
-
         <section class="risk-section">
-
             <div class="risk-header">
-
                 <div>
                     <h3>Riesgo</h3>
                     <p>Evaluación antifraude del intento</p>
                 </div>
-
                 <div id="detailRiskScore" class="risk-score">
                     0
                 </div>
-
             </div>
-
             <div id="rulesContainer"></div>
-
         </section>
-
     </div>
-
 </div>
 
 
 <script>
-
     const tableBody = document.getElementById('attemptsTableBody');
-
     const totalAttempts = document.getElementById('totalAttempts');
     const acceptedAttempts = document.getElementById('acceptedAttempts');
     const suspiciousAttempts = document.getElementById('suspiciousAttempts');
     const rejectedAttempts = document.getElementById('rejectedAttempts');
-
     const attemptsCount = document.getElementById('attemptsCount');
-
     const refreshButton = document.getElementById('refreshButton');
-
     const detailModal = document.getElementById('detailModal');
     const modalOverlay = document.getElementById('modalOverlay');
     const closeModal = document.getElementById('closeModal');
@@ -208,36 +147,25 @@
      */
 
     async function loadAttempts() {
-
         try {
-
             hideError();
-
             refreshButton.disabled = true;
             refreshButton.textContent = 'Actualizando...';
-
             const response =
                 await fetch('/api/fraud/attempts');
-
             if (!response.ok) {
                 throw new Error('Error retrieving attempts');
             }
 
             const attempts = await response.json();
-
             renderSummary(attempts);
             renderAttempts(attempts);
-
         } catch (error) {
-
             console.error(error);
-
             showError(
                 'No se han podido cargar los intentos de votación.'
             );
-
         } finally {
-
             refreshButton.disabled = false;
             refreshButton.textContent = 'Actualizar';
         }
