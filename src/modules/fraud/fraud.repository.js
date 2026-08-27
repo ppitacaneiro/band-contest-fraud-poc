@@ -63,7 +63,50 @@ async function countRecentVotesByArtist({
     return Number(rows[0].total);
 }
 
+async function getAttempts() {
+    const [rows] = await db.execute(`
+        SELECT
+            id,
+            user_id,
+            contest_id,
+            artist_id,
+            ip_address,
+            user_agent,
+            status,
+            risk_score,
+            risk_details,
+            created_at
+        FROM vote_attempts
+        ORDER BY created_at DESC
+    `);
+
+    return rows;
+}
+
+async function getAttemptById(id) {
+    const [rows] = await db.execute(`
+        SELECT
+            id,
+            user_id,
+            contest_id,
+            artist_id,
+            ip_address,
+            user_agent,
+            status,
+            risk_score,
+            risk_details,
+            created_at
+        FROM vote_attempts
+        WHERE id = ?
+        LIMIT 1
+    `, [id]);
+
+    return rows[0] || null;
+}
+
 module.exports = {
     countDistinctUsersByIp,
-    countRecentVotesByArtist
+    countRecentVotesByArtist,
+    getAttempts,
+    getAttemptById
 };

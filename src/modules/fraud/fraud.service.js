@@ -1,6 +1,7 @@
 const multipleUsersSameIpRule = require('./rules/multiple-users-same-ip.rule');
 const rapidVotesSameArtistRule = require('./rules/rapid-votes-same-artist.rule');
 const sameFingerprintRule = require('./rules/same-fingerprint.rule');
+const fraudRepository = require('./fraud.repository');
 
 const rules = [
     multipleUsersSameIpRule,
@@ -47,6 +48,16 @@ async function analyzeVote({
     };
 }
 
+async function getAttempts() {
+    return fraudRepository.getAttempts();
+}
+
+async function getAttemptById(id) {
+    return fraudRepository.getAttemptById(id);
+}
+
 module.exports = {
-    analyzeVote
+    analyzeVote,
+    getAttempts,
+    getAttemptById
 };
