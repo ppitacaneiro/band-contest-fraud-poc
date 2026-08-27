@@ -63,6 +63,37 @@ async function countRecentVotesByArtist({
     return Number(rows[0].total);
 }
 
+async function countRecentAttemptsByIp({
+    contestId,
+    ipAddress,
+    seconds
+}) {
+    const safeSeconds = Number(seconds);
+
+    if (!Number.isInteger(safeSeconds) || safeSeconds <= 0) {
+        throw new Error('Invalid time window');
+    }
+
+    const [rows] = await db.execute(
+        `
+        SELECT COUNT(*) AS total
+        FROM vote_attempts
+        WHERE contest_id = ?
+        AND ip_address = ?
+        AND created_at >= DATE_SUB(
+            NOW(),
+            INTERVAL ${safeSeconds} SECOND
+        )
+        `,
+        [
+            contestId,
+            ipAddress
+        ]
+    );
+
+    return Number(rows[0].total);
+}
+
 async function getAttempts() {
     const [rows] = await db.execute(`
         SELECT
@@ -107,6 +138,7 @@ async function getAttemptById(id) {
 module.exports = {
     countDistinctUsersByIp,
     countRecentVotesByArtist,
+    countRecentAttemptsByIp,
     getAttempts,
     getAttemptById
 };

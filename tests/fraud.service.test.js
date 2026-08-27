@@ -605,4 +605,102 @@ describe('Fraud Service', () => {
         expect(rule.triggered).toBe(false);
         expect(rule.score).toBe(0);
     });
+
+
+    test('13. should not trigger rapid attempts from an IP below threshold', async () => {
+
+        for (let i = 0; i < 14; i++) {
+
+            const userId = await createUser();
+
+            await createAttempt({
+                userId,
+                ipAddress: '80.100.150.1'
+            });
+        }
+
+        const userId = await createUser();
+
+        const result = await fraudService.analyzeVote({
+            userId,
+            ipAddress: '80.100.150.1',
+            contestId,
+            artistId,
+            fingerprintId: 'rapid-ip-test-1'
+        });
+
+        const rule = result.rules.find(
+            rule => rule.name === 'rapid_attempts_same_ip'
+        );
+
+        expect(rule.triggered).toBe(false);
+        expect(rule.score).toBe(0);
+    });
+
+
+    test('14. should trigger rapid attempts from an IP at threshold', async () => {
+
+        for (let i = 0; i < 15; i++) {
+
+            const userId = await createUser();
+
+            await createAttempt({
+                userId,
+                ipAddress: '80.100.160.1'
+            });
+        }
+
+        const userId = await createUser();
+
+        const result = await fraudService.analyzeVote({
+            userId,
+            ipAddress: '80.100.160.1',
+            contestId,
+            artistId,
+            fingerprintId: 'rapid-ip-test-2'
+        });
+
+        const rule = result.rules.find(
+            rule => rule.name === 'rapid_attempts_same_ip'
+        );
+
+        expect(rule.triggered).toBe(true);
+        expect(rule.score).toBe(25);
+        expect(result.riskScore).toBe(25);
+    });
+
+
+    test('15. should ignore rapid attempts outside the 60-second window', async () => {
+
+        const oldDate =
+            new Date(Date.now() - 2 * 60 * 1000);
+
+        for (let i = 0; i < 15; i++) {
+
+            const userId = await createUser();
+
+            await createAttempt({
+                userId,
+                ipAddress: '80.100.170.1',
+                createdAt: oldDate
+            });
+        }
+
+        const userId = await createUser();
+
+        const result = await fraudService.analyzeVote({
+            userId,
+            ipAddress: '80.100.170.1',
+            contestId,
+            artistId,
+            fingerprintId: 'rapid-ip-test-3'
+        });
+
+        const rule = result.rules.find(
+            rule => rule.name === 'rapid_attempts_same_ip'
+        );
+
+        expect(rule.triggered).toBe(false);
+        expect(rule.score).toBe(0);
+    });
 });

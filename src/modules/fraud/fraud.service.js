@@ -1,12 +1,14 @@
 const multipleUsersSameIpRule = require('./rules/multiple-users-same-ip.rule');
 const rapidVotesSameArtistRule = require('./rules/rapid-votes-same-artist.rule');
 const sameFingerprintRule = require('./rules/same-fingerprint.rule');
+const rapidAttemptsSameIpRule = require('./rules/rapid-attempts-same-ip.rule');
 const fraudRepository = require('./fraud.repository');
 
 const rules = [
     multipleUsersSameIpRule,
     rapidVotesSameArtistRule,
-    sameFingerprintRule
+    sameFingerprintRule,
+    rapidAttemptsSameIpRule
 ];
 
 async function analyzeVote({

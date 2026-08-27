@@ -71,7 +71,7 @@ La batería de pruebas automatizadas se ejecuta contra MySQL:
 docker compose exec api npm test
 ```
 
-Actualmente existen **12 tests automatizados** que cubren las principales casuísticas del sistema antifraude.
+Actualmente existen **15 tests automatizados** que cubren las principales casuísticas del sistema antifraude.
 
 ## Arquitectura
 
@@ -122,9 +122,11 @@ Esto permite mantener separada la lógica de negocio de las consultas SQL.
 
 ## Sistema antifraude
 
+Adicionalmente, se detectan rÃ¡fagas de **15 o mÃ¡s intentos desde la misma IP en 60 segundos**, con una puntuaciÃ³n de **+25** (`rapid_attempts_same_ip`). Esta seÃ±al se acumula con las demÃ¡s.
+
 El sistema antifraude analiza cada intento de voto antes de crear el voto definitivo.
 
-Actualmente se utilizan tres señales independientes que pueden combinarse para obtener una puntuación de riesgo:
+Actualmente se utilizan cuatro señales independientes que pueden combinarse para obtener una puntuación de riesgo:
 
 ### 1. Múltiples usuarios desde una misma IP
 
@@ -161,6 +163,8 @@ Votos rápidos         +30
 Máximo                110
 ```
 
+Con la regla de ráfaga por IP, el máximo actual es **135**.
+
 Actualmente cualquier puntuación superior a `0` genera:
 
 ```text
@@ -188,7 +192,7 @@ El detalle de las reglas se almacena como JSON, permitiendo conocer no solo la p
 
 La batería de tests utiliza **Jest + MySQL**.
 
-Actualmente se cubren **12 casos**:
+Actualmente se cubren **15 casos**:
 
 | #  | Casuística                                         | Resultado esperado                 |
 | -- | -------------------------------------------------- | ---------------------------------- |
@@ -204,6 +208,9 @@ Actualmente se cubren **12 casos**:
 | 10 | IP + fingerprint + votos rápidos                   | `+110`                             |
 | 11 | Intentos IP fuera de la ventana de 5 minutos       | Sin alerta                         |
 | 12 | Múltiples intentos del mismo usuario desde una IP  | No contabiliza usuarios duplicados |
+| 13 | 14 intentos desde una misma IP en 60 segundos       | Sin alerta                         |
+| 14 | 15 intentos desde una misma IP en 60 segundos       | `+25`                              |
+| 15 | Intentos desde una IP fuera de la ventana de 60 segundos | Sin alerta                      |
 
 Los tests limpian los datos generados entre pruebas para evitar que un escenario contamine al siguiente.
 
@@ -230,6 +237,6 @@ Actualmente se ha validado:
 * Puntuación de riesgo.
 * Detalle de las reglas que provocan la puntuación.
 * Persistencia de intentos sospechosos y rechazados.
-* Batería automatizada de **12 tests**.
+* Batería automatizada de **15 tests**.
 
 La PoC seguirá evolucionando incorporando nuevas señales y casos de prueba antes de definir un sistema definitivo de decisión automática.
